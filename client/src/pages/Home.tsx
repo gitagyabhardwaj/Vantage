@@ -293,10 +293,35 @@ function DashboardView({
     <>
       <section className="page-intro">
         <div>
-          <div className="eyebrow"><span className="eyebrow-line" /> LIVE VERDICT / {fileName.toUpperCase()}</div>
-          <h1>{scanState === "idle" ? "Ready to scan" : `${totalExposures} exposures`} <br /><span>{scanState === "idle" ? "awaiting execution." : "need an owner."}</span></h1>
+          <div className="eyebrow">
+            <span className="eyebrow-line" />
+            <span>{scanState === "idle" ? "READY TO SCAN" : `LIVE POSTURE / ${fileName.toUpperCase()}`}</span>
+            {scanState !== "idle" && (
+              <span className={`status-pill ${totalExposures > 0 ? "warn" : "clean"}`}>
+                <StatusDot state={totalExposures > 0 ? "warn" : "live"} />
+                {totalExposures > 0 ? `${totalExposures} EXPOSURES` : "HARDENED"}
+              </span>
+            )}
+          </div>
+          <h1>
+            {scanState === "idle" ? (
+              <>Ready to scan <br /><span>awaiting execution.</span></>
+            ) : scanState === "scanning" ? (
+              <>Evaluating <span className="mono">{fileName}</span></>
+            ) : totalExposures > 0 ? (
+              <>{totalExposures} security issues <br /><span>require review.</span></>
+            ) : (
+              <>All checks passed. <br /><span>Workspace secured.</span></>
+            )}
+          </h1>
           <p className="intro-copy">
-            {scanState === "idle" ? "Upload your Terraform plan to analyze security paths before apply." : `Vantage analyzed the plan and found ${totalExposures} security paths that need a decision before apply.`}
+            {scanState === "idle"
+              ? "Upload your Terraform plan to analyze security paths before apply."
+              : scanState === "scanning"
+              ? `Running static analysis across 35 security controls for ${fileName}...`
+              : totalExposures > 0
+              ? `Vantage detected ${totalExposures} security exposures in ${fileName}. Remediate before apply.`
+              : `0 active risks found in ${fileName}. All 35 security policy rules passed successfully.`}
           </p>
         </div>
         <div className="intro-actions">
@@ -306,15 +331,15 @@ function DashboardView({
             disabled={scanState === "scanning"}
           >
             {scanState === "scanning" ? (
-              <><RefreshCw size={17} className="spin" /> SCANNING FILE</>
+              <><RefreshCw size={16} className="spin" /> SCANNING FILE</>
             ) : scanState === "complete" ? (
-              <><Check size={17} /> RE-RUN SCAN</>
+              <><Check size={16} /> RE-RUN SCAN</>
             ) : (
-              <><Play size={17} fill="currentColor" /> RUN LOCAL SCAN</>
+              <><Play size={16} fill="currentColor" /> RUN LOCAL SCAN</>
             )}
             <span className="cta-shortcut">⌘ ↵</span>
           </button>
-          <span className="last-scan"><span className="mini-pulse" /> LAST SCAN <strong>4 MIN AGO</strong></span>
+          <span className="last-scan"><span className="mini-pulse" /> ENGINE <strong>READY</strong></span>
         </div>
       </section>
 

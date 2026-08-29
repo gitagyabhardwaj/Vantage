@@ -54,6 +54,7 @@ type Finding = {
 type ScanPayload = {
   summary: { critical: number; high: number; medium: number; passed: number };
   findings: Finding[];
+  security_score?: { score: number; grade: string; verdict: string };
 };
 type ViewName = "Overview" | "Rule library";
 
@@ -103,8 +104,13 @@ function DashboardView({ scan, setScan, scanState, setScanState, fileName, setFi
   const [expandedFinding, setExpandedFinding] = useState<string | null>(scan.findings[0]?.rule_id ?? null);
   const [search, setSearch] = useState("");
   const fileInput = useRef<HTMLInputElement>(null);
-  const score = useMemo(() => { const { critical, high, medium, passed } = scan.summary; const total = critical + high + medium + passed; return total === 0 ? 100 : Math.round(((passed + medium * .65 + high * .35) / total) * 100); }, [scan]);
-  const filteredFindings = useMemo(() => { const query = search.trim().toLowerCase(); if (!query) return scan.findings; return scan.findings.filter((finding) => [finding.rule_id, finding.resource, finding.service, finding.description].some((value) => value.toLowerCase().includes(query))); }, [scan.findings, search]);
+  const score = useMemo(() => {
+    if (scan.security_score) return scan.security_score.score;
+    const { critical, high, medium, passed } = scan.summary;
+    const total = critical + high + medium + passed;
+    return total === 0 ? 100 : Math.round(((passed + medium * .65 + high * .35) / total) * 100);
+  }, [scan]);
+  const filteredFindings = useMemo(() => { const query = search.trim().toLowerCase(); if (!query) return scan.findings; return scan.findings.filter((finding) => [finding.rule_id, finding.resource, finding.description].some((value) => value?.toLowerCase().includes(query))); }, [scan.findings, search]);
   
   const startScan = async () => { 
     if (scanState === "scanning") return; 

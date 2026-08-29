@@ -305,6 +305,612 @@ def check_s3_versioning_disabled(resources: list[dict]) -> list[dict]:
 # ──────────────────────────────────────────────────────────────────────────────
 # Master runner — called by the engine
 # ──────────────────────────────────────────────────────────────────────────────
+
+
+# ==========================================
+# MEGA-RULE EXPANSION PACK (AUTO-GENERATED)
+# ==========================================
+
+# ──────────────────────────────────────────────────────────────────────────────
+# RULE AWS-016 — aws_efs_file_system: efs_unencrypted
+# Severity: HIGH
+# ──────────────────────────────────────────────────────────────────────────────
+def check_efs_unencrypted(resources: list[dict]) -> list[dict]:
+    findings = []
+    for r in resources:
+        if r["resource_type"] != "aws_efs_file_system": continue
+        val = r["config"].get("encrypted", "False")
+        if isinstance(val, list): val = val[0]
+        if str(val).lower() == "false":
+            findings.append({
+                "rule_id": "AWS-016",
+                "severity": "HIGH",
+                "resource": _resource_label(r),
+                "description": "EFS file system is not encrypted at rest.",
+                "remediation": "Update the `encrypted` setting to a secure value."
+            })
+    return findings
+
+# ──────────────────────────────────────────────────────────────────────────────
+# RULE AWS-017 — aws_elasticache_replication_group: elasticache_transit
+# Severity: HIGH
+# ──────────────────────────────────────────────────────────────────────────────
+def check_elasticache_transit(resources: list[dict]) -> list[dict]:
+    findings = []
+    for r in resources:
+        if r["resource_type"] != "aws_elasticache_replication_group": continue
+        val = r["config"].get("transit_encryption_enabled", "False")
+        if isinstance(val, list): val = val[0]
+        if str(val).lower() == "false":
+            findings.append({
+                "rule_id": "AWS-017",
+                "severity": "HIGH",
+                "resource": _resource_label(r),
+                "description": "ElastiCache transit encryption is disabled.",
+                "remediation": "Update the `transit_encryption_enabled` setting to a secure value."
+            })
+    return findings
+
+# ──────────────────────────────────────────────────────────────────────────────
+# RULE AWS-018 — aws_elasticache_replication_group: elasticache_at_rest
+# Severity: HIGH
+# ──────────────────────────────────────────────────────────────────────────────
+def check_elasticache_at_rest(resources: list[dict]) -> list[dict]:
+    findings = []
+    for r in resources:
+        if r["resource_type"] != "aws_elasticache_replication_group": continue
+        val = r["config"].get("at_rest_encryption_enabled", "False")
+        if isinstance(val, list): val = val[0]
+        if str(val).lower() == "false":
+            findings.append({
+                "rule_id": "AWS-018",
+                "severity": "HIGH",
+                "resource": _resource_label(r),
+                "description": "ElastiCache at-rest encryption is disabled.",
+                "remediation": "Update the `at_rest_encryption_enabled` setting to a secure value."
+            })
+    return findings
+
+# ──────────────────────────────────────────────────────────────────────────────
+# RULE AWS-019 — aws_cloudfront_distribution: cloudfront_allow_http
+# Severity: MEDIUM
+# ──────────────────────────────────────────────────────────────────────────────
+def check_cloudfront_allow_http(resources: list[dict]) -> list[dict]:
+    findings = []
+    for r in resources:
+        if r["resource_type"] != "aws_cloudfront_distribution": continue
+        val = r["config"].get("viewer_protocol_policy", "allow-all")
+        if isinstance(val, list): val = val[0]
+        if str(val).lower() == "allow-all":
+            findings.append({
+                "rule_id": "AWS-019",
+                "severity": "MEDIUM",
+                "resource": _resource_label(r),
+                "description": "CloudFront allows unencrypted HTTP traffic.",
+                "remediation": "Update the `viewer_protocol_policy` setting to a secure value."
+            })
+    return findings
+
+# ──────────────────────────────────────────────────────────────────────────────
+# RULE AWS-020 — aws_sagemaker_notebook_instance: sagemaker_root_access
+# Severity: HIGH
+# ──────────────────────────────────────────────────────────────────────────────
+def check_sagemaker_root_access(resources: list[dict]) -> list[dict]:
+    findings = []
+    for r in resources:
+        if r["resource_type"] != "aws_sagemaker_notebook_instance": continue
+        val = r["config"].get("root_access", "enabled")
+        if isinstance(val, list): val = val[0]
+        if str(val).lower() == "enabled":
+            findings.append({
+                "rule_id": "AWS-020",
+                "severity": "HIGH",
+                "resource": _resource_label(r),
+                "description": "SageMaker notebook has root access enabled.",
+                "remediation": "Update the `root_access` setting to a secure value."
+            })
+    return findings
+
+# ──────────────────────────────────────────────────────────────────────────────
+# RULE AWS-021 — aws_docdb_cluster: docdb_unencrypted
+# Severity: HIGH
+# ──────────────────────────────────────────────────────────────────────────────
+def check_docdb_unencrypted(resources: list[dict]) -> list[dict]:
+    findings = []
+    for r in resources:
+        if r["resource_type"] != "aws_docdb_cluster": continue
+        val = r["config"].get("storage_encrypted", "False")
+        if isinstance(val, list): val = val[0]
+        if str(val).lower() == "false":
+            findings.append({
+                "rule_id": "AWS-021",
+                "severity": "HIGH",
+                "resource": _resource_label(r),
+                "description": "DocumentDB cluster is not encrypted.",
+                "remediation": "Update the `storage_encrypted` setting to a secure value."
+            })
+    return findings
+
+# ──────────────────────────────────────────────────────────────────────────────
+# RULE AWS-022 — aws_dax_cluster: dax_unencrypted
+# Severity: HIGH
+# ──────────────────────────────────────────────────────────────────────────────
+def check_dax_unencrypted(resources: list[dict]) -> list[dict]:
+    findings = []
+    for r in resources:
+        if r["resource_type"] != "aws_dax_cluster": continue
+        val = r["config"].get("server_side_encryption", "False")
+        if isinstance(val, list): val = val[0]
+        if str(val).lower() == "false":
+            findings.append({
+                "rule_id": "AWS-022",
+                "severity": "HIGH",
+                "resource": _resource_label(r),
+                "description": "DAX cluster is not encrypted at rest.",
+                "remediation": "Update the `server_side_encryption` setting to a secure value."
+            })
+    return findings
+
+# ──────────────────────────────────────────────────────────────────────────────
+# RULE AWS-023 — aws_kinesis_stream: kinesis_unencrypted
+# Severity: HIGH
+# ──────────────────────────────────────────────────────────────────────────────
+def check_kinesis_unencrypted(resources: list[dict]) -> list[dict]:
+    findings = []
+    for r in resources:
+        if r["resource_type"] != "aws_kinesis_stream": continue
+        val = r["config"].get("encryption_type", "none")
+        if isinstance(val, list): val = val[0]
+        if str(val).lower() == "none":
+            findings.append({
+                "rule_id": "AWS-023",
+                "severity": "HIGH",
+                "resource": _resource_label(r),
+                "description": "Kinesis stream is not encrypted.",
+                "remediation": "Update the `encryption_type` setting to a secure value."
+            })
+    return findings
+
+# ──────────────────────────────────────────────────────────────────────────────
+# RULE AWS-024 — aws_redshift_cluster: redshift_public
+# Severity: CRITICAL
+# ──────────────────────────────────────────────────────────────────────────────
+def check_redshift_public(resources: list[dict]) -> list[dict]:
+    findings = []
+    for r in resources:
+        if r["resource_type"] != "aws_redshift_cluster": continue
+        val = r["config"].get("publicly_accessible", "False")
+        if isinstance(val, list): val = val[0]
+        if str(val).lower() == "true":
+            findings.append({
+                "rule_id": "AWS-024",
+                "severity": "CRITICAL",
+                "resource": _resource_label(r),
+                "description": "Redshift cluster is exposed to the public internet.",
+                "remediation": "Update the `publicly_accessible` setting to a secure value."
+            })
+    return findings
+
+# ──────────────────────────────────────────────────────────────────────────────
+# RULE AWS-025 — aws_redshift_cluster: redshift_unencrypted
+# Severity: HIGH
+# ──────────────────────────────────────────────────────────────────────────────
+def check_redshift_unencrypted(resources: list[dict]) -> list[dict]:
+    findings = []
+    for r in resources:
+        if r["resource_type"] != "aws_redshift_cluster": continue
+        val = r["config"].get("encrypted", "False")
+        if isinstance(val, list): val = val[0]
+        if str(val).lower() == "false":
+            findings.append({
+                "rule_id": "AWS-025",
+                "severity": "HIGH",
+                "resource": _resource_label(r),
+                "description": "Redshift cluster is not encrypted.",
+                "remediation": "Update the `encrypted` setting to a secure value."
+            })
+    return findings
+
+# ──────────────────────────────────────────────────────────────────────────────
+# RULE AWS-026 — aws_eks_cluster: eks_public_endpoint
+# Severity: CRITICAL
+# ──────────────────────────────────────────────────────────────────────────────
+def check_eks_public_endpoint(resources: list[dict]) -> list[dict]:
+    findings = []
+    for r in resources:
+        if r["resource_type"] != "aws_eks_cluster": continue
+        val = r["config"].get("endpoint_public_access", "True")
+        if isinstance(val, list): val = val[0]
+        if str(val).lower() == "true":
+            findings.append({
+                "rule_id": "AWS-026",
+                "severity": "CRITICAL",
+                "resource": _resource_label(r),
+                "description": "EKS cluster endpoint is publicly accessible.",
+                "remediation": "Update the `endpoint_public_access` setting to a secure value."
+            })
+    return findings
+
+# ──────────────────────────────────────────────────────────────────────────────
+# RULE AWS-027 — aws_emr_security_configuration: emr_unencrypted
+# Severity: HIGH
+# ──────────────────────────────────────────────────────────────────────────────
+def check_emr_unencrypted(resources: list[dict]) -> list[dict]:
+    findings = []
+    for r in resources:
+        if r["resource_type"] != "aws_emr_security_configuration": continue
+        val = r["config"].get("enable_at_rest_encryption", "False")
+        if isinstance(val, list): val = val[0]
+        if str(val).lower() == "false":
+            findings.append({
+                "rule_id": "AWS-027",
+                "severity": "HIGH",
+                "resource": _resource_label(r),
+                "description": "EMR cluster does not enforce at-rest encryption.",
+                "remediation": "Update the `enable_at_rest_encryption` setting to a secure value."
+            })
+    return findings
+
+# ──────────────────────────────────────────────────────────────────────────────
+# RULE AWS-028 — aws_mq_broker: mq_public
+# Severity: HIGH
+# ──────────────────────────────────────────────────────────────────────────────
+def check_mq_public(resources: list[dict]) -> list[dict]:
+    findings = []
+    for r in resources:
+        if r["resource_type"] != "aws_mq_broker": continue
+        val = r["config"].get("publicly_accessible", "False")
+        if isinstance(val, list): val = val[0]
+        if str(val).lower() == "true":
+            findings.append({
+                "rule_id": "AWS-028",
+                "severity": "HIGH",
+                "resource": _resource_label(r),
+                "description": "Amazon MQ broker is publicly accessible.",
+                "remediation": "Update the `publicly_accessible` setting to a secure value."
+            })
+    return findings
+
+# ──────────────────────────────────────────────────────────────────────────────
+# RULE AWS-029 — aws_neptune_cluster: neptune_unencrypted
+# Severity: HIGH
+# ──────────────────────────────────────────────────────────────────────────────
+def check_neptune_unencrypted(resources: list[dict]) -> list[dict]:
+    findings = []
+    for r in resources:
+        if r["resource_type"] != "aws_neptune_cluster": continue
+        val = r["config"].get("storage_encrypted", "False")
+        if isinstance(val, list): val = val[0]
+        if str(val).lower() == "false":
+            findings.append({
+                "rule_id": "AWS-029",
+                "severity": "HIGH",
+                "resource": _resource_label(r),
+                "description": "Neptune graph database is not encrypted.",
+                "remediation": "Update the `storage_encrypted` setting to a secure value."
+            })
+    return findings
+
+# ──────────────────────────────────────────────────────────────────────────────
+# RULE AWS-030 — aws_workspaces_workspace: workspace_unencrypted
+# Severity: MEDIUM
+# ──────────────────────────────────────────────────────────────────────────────
+def check_workspace_unencrypted(resources: list[dict]) -> list[dict]:
+    findings = []
+    for r in resources:
+        if r["resource_type"] != "aws_workspaces_workspace": continue
+        val = r["config"].get("root_volume_encryption_enabled", "False")
+        if isinstance(val, list): val = val[0]
+        if str(val).lower() == "false":
+            findings.append({
+                "rule_id": "AWS-030",
+                "severity": "MEDIUM",
+                "resource": _resource_label(r),
+                "description": "WorkSpaces root volume is not encrypted.",
+                "remediation": "Update the `root_volume_encryption_enabled` setting to a secure value."
+            })
+    return findings
+
+# ──────────────────────────────────────────────────────────────────────────────
+# RULE AWS-031 — aws_athena_workgroup: athena_unencrypted
+# Severity: MEDIUM
+# ──────────────────────────────────────────────────────────────────────────────
+def check_athena_unencrypted(resources: list[dict]) -> list[dict]:
+    findings = []
+    for r in resources:
+        if r["resource_type"] != "aws_athena_workgroup": continue
+        val = r["config"].get("enforce_workgroup_configuration", "False")
+        if isinstance(val, list): val = val[0]
+        if str(val).lower() == "false":
+            findings.append({
+                "rule_id": "AWS-031",
+                "severity": "MEDIUM",
+                "resource": _resource_label(r),
+                "description": "Athena workgroup does not enforce query encryption.",
+                "remediation": "Update the `enforce_workgroup_configuration` setting to a secure value."
+            })
+    return findings
+
+# ──────────────────────────────────────────────────────────────────────────────
+# RULE AWS-032 — aws_sns_topic: sns_unencrypted
+# Severity: MEDIUM
+# ──────────────────────────────────────────────────────────────────────────────
+def check_sns_unencrypted(resources: list[dict]) -> list[dict]:
+    findings = []
+    for r in resources:
+        if r["resource_type"] != "aws_sns_topic": continue
+        val = r["config"].get("kms_master_key_id", "")
+        if isinstance(val, list): val = val[0]
+        if str(val).lower() == "":
+            findings.append({
+                "rule_id": "AWS-032",
+                "severity": "MEDIUM",
+                "resource": _resource_label(r),
+                "description": "SNS topic is not encrypted with KMS.",
+                "remediation": "Update the `kms_master_key_id` setting to a secure value."
+            })
+    return findings
+
+# ──────────────────────────────────────────────────────────────────────────────
+# RULE AWS-033 — aws_ecs_task_definition: ecs_no_transit_encryption
+# Severity: MEDIUM
+# ──────────────────────────────────────────────────────────────────────────────
+def check_ecs_no_transit_encryption(resources: list[dict]) -> list[dict]:
+    findings = []
+    for r in resources:
+        if r["resource_type"] != "aws_ecs_task_definition": continue
+        val = r["config"].get("transit_encryption", "False")
+        if isinstance(val, list): val = val[0]
+        if str(val).lower() == "false":
+            findings.append({
+                "rule_id": "AWS-033",
+                "severity": "MEDIUM",
+                "resource": _resource_label(r),
+                "description": "ECS task definition lacks transit encryption.",
+                "remediation": "Update the `transit_encryption` setting to a secure value."
+            })
+    return findings
+
+# ──────────────────────────────────────────────────────────────────────────────
+# RULE AWS-034 — aws_codebuild_project: codebuild_unencrypted
+# Severity: MEDIUM
+# ──────────────────────────────────────────────────────────────────────────────
+def check_codebuild_unencrypted(resources: list[dict]) -> list[dict]:
+    findings = []
+    for r in resources:
+        if r["resource_type"] != "aws_codebuild_project": continue
+        val = r["config"].get("encryption_key", "")
+        if isinstance(val, list): val = val[0]
+        if str(val).lower() == "":
+            findings.append({
+                "rule_id": "AWS-034",
+                "severity": "MEDIUM",
+                "resource": _resource_label(r),
+                "description": "CodeBuild project is missing an encryption key.",
+                "remediation": "Update the `encryption_key` setting to a secure value."
+            })
+    return findings
+
+# ──────────────────────────────────────────────────────────────────────────────
+# RULE AWS-035 — aws_appsync_graphql_api: appsync_waf_disabled
+# Severity: LOW
+# ──────────────────────────────────────────────────────────────────────────────
+def check_appsync_waf_disabled(resources: list[dict]) -> list[dict]:
+    findings = []
+    for r in resources:
+        if r["resource_type"] != "aws_appsync_graphql_api": continue
+        val = r["config"].get("waf_web_acl_arn", "")
+        if isinstance(val, list): val = val[0]
+        if str(val).lower() == "":
+            findings.append({
+                "rule_id": "AWS-035",
+                "severity": "LOW",
+                "resource": _resource_label(r),
+                "description": "AppSync GraphQL API does not have a WAF attached.",
+                "remediation": "Update the `waf_web_acl_arn` setting to a secure value."
+            })
+    return findings
+
+# ──────────────────────────────────────────────────────────────────────────────
+# RULE AWS-036 — aws_api_gateway_stage: apigateway_waf_disabled
+# Severity: LOW
+# ──────────────────────────────────────────────────────────────────────────────
+def check_apigateway_waf_disabled(resources: list[dict]) -> list[dict]:
+    findings = []
+    for r in resources:
+        if r["resource_type"] != "aws_api_gateway_stage": continue
+        val = r["config"].get("web_acl_arn", "")
+        if isinstance(val, list): val = val[0]
+        if str(val).lower() == "":
+            findings.append({
+                "rule_id": "AWS-036",
+                "severity": "LOW",
+                "resource": _resource_label(r),
+                "description": "API Gateway stage does not have a WAF attached.",
+                "remediation": "Update the `web_acl_arn` setting to a secure value."
+            })
+    return findings
+
+# ──────────────────────────────────────────────────────────────────────────────
+# RULE AWS-037 — aws_lambda_function: lambda_tracing_disabled
+# Severity: LOW
+# ──────────────────────────────────────────────────────────────────────────────
+def check_lambda_tracing_disabled(resources: list[dict]) -> list[dict]:
+    findings = []
+    for r in resources:
+        if r["resource_type"] != "aws_lambda_function": continue
+        val = r["config"].get("tracing_config", "")
+        if isinstance(val, list): val = val[0]
+        if str(val).lower() == "":
+            findings.append({
+                "rule_id": "AWS-037",
+                "severity": "LOW",
+                "resource": _resource_label(r),
+                "description": "Lambda function does not have X-Ray tracing enabled.",
+                "remediation": "Update the `tracing_config` setting to a secure value."
+            })
+    return findings
+
+# ──────────────────────────────────────────────────────────────────────────────
+# RULE AWS-038 — aws_vpc: vpc_flow_logs_disabled
+# Severity: MEDIUM
+# ──────────────────────────────────────────────────────────────────────────────
+def check_vpc_flow_logs_disabled(resources: list[dict]) -> list[dict]:
+    findings = []
+    for r in resources:
+        if r["resource_type"] != "aws_vpc": continue
+        val = r["config"].get("enable_flow_logs", "False")
+        if isinstance(val, list): val = val[0]
+        if str(val).lower() == "false":
+            findings.append({
+                "rule_id": "AWS-038",
+                "severity": "MEDIUM",
+                "resource": _resource_label(r),
+                "description": "VPC does not have Flow Logs enabled.",
+                "remediation": "Update the `enable_flow_logs` setting to a secure value."
+            })
+    return findings
+
+# ──────────────────────────────────────────────────────────────────────────────
+# RULE AWS-039 — aws_iam_account_password_policy: iam_password_reuse
+# Severity: MEDIUM
+# ──────────────────────────────────────────────────────────────────────────────
+def check_iam_password_reuse(resources: list[dict]) -> list[dict]:
+    findings = []
+    for r in resources:
+        if r["resource_type"] != "aws_iam_account_password_policy": continue
+        val = r["config"].get("password_reuse_prevention", "0")
+        if isinstance(val, list): val = val[0]
+        if str(val).lower() == "0":
+            findings.append({
+                "rule_id": "AWS-039",
+                "severity": "MEDIUM",
+                "resource": _resource_label(r),
+                "description": "IAM password policy allows immediate password reuse.",
+                "remediation": "Update the `password_reuse_prevention` setting to a secure value."
+            })
+    return findings
+
+# ──────────────────────────────────────────────────────────────────────────────
+# RULE AWS-040 — aws_iam_account_password_policy: iam_password_length
+# Severity: LOW
+# ──────────────────────────────────────────────────────────────────────────────
+def check_iam_password_length(resources: list[dict]) -> list[dict]:
+    findings = []
+    for r in resources:
+        if r["resource_type"] != "aws_iam_account_password_policy": continue
+        val = r["config"].get("minimum_password_length", "8")
+        if isinstance(val, list): val = val[0]
+        if str(val).lower() == "8":
+            findings.append({
+                "rule_id": "AWS-040",
+                "severity": "LOW",
+                "resource": _resource_label(r),
+                "description": "IAM password policy allows short passwords (under 14 characters).",
+                "remediation": "Update the `minimum_password_length` setting to a secure value."
+            })
+    return findings
+
+# ──────────────────────────────────────────────────────────────────────────────
+# RULE AWS-041 — aws_s3_bucket_public_access_block: s3_block_public_acls
+# Severity: HIGH
+# ──────────────────────────────────────────────────────────────────────────────
+def check_s3_block_public_acls(resources: list[dict]) -> list[dict]:
+    findings = []
+    for r in resources:
+        if r["resource_type"] != "aws_s3_bucket_public_access_block": continue
+        val = r["config"].get("block_public_acls", "False")
+        if isinstance(val, list): val = val[0]
+        if str(val).lower() == "false":
+            findings.append({
+                "rule_id": "AWS-041",
+                "severity": "HIGH",
+                "resource": _resource_label(r),
+                "description": "S3 Public Access Block does not block public ACLs.",
+                "remediation": "Update the `block_public_acls` setting to a secure value."
+            })
+    return findings
+
+# ──────────────────────────────────────────────────────────────────────────────
+# RULE AWS-042 — aws_s3_bucket_public_access_block: s3_ignore_public_acls
+# Severity: HIGH
+# ──────────────────────────────────────────────────────────────────────────────
+def check_s3_ignore_public_acls(resources: list[dict]) -> list[dict]:
+    findings = []
+    for r in resources:
+        if r["resource_type"] != "aws_s3_bucket_public_access_block": continue
+        val = r["config"].get("ignore_public_acls", "False")
+        if isinstance(val, list): val = val[0]
+        if str(val).lower() == "false":
+            findings.append({
+                "rule_id": "AWS-042",
+                "severity": "HIGH",
+                "resource": _resource_label(r),
+                "description": "S3 Public Access Block does not ignore public ACLs.",
+                "remediation": "Update the `ignore_public_acls` setting to a secure value."
+            })
+    return findings
+
+# ──────────────────────────────────────────────────────────────────────────────
+# RULE AWS-043 — aws_s3_bucket_public_access_block: s3_block_public_policy
+# Severity: HIGH
+# ──────────────────────────────────────────────────────────────────────────────
+def check_s3_block_public_policy(resources: list[dict]) -> list[dict]:
+    findings = []
+    for r in resources:
+        if r["resource_type"] != "aws_s3_bucket_public_access_block": continue
+        val = r["config"].get("block_public_policy", "False")
+        if isinstance(val, list): val = val[0]
+        if str(val).lower() == "false":
+            findings.append({
+                "rule_id": "AWS-043",
+                "severity": "HIGH",
+                "resource": _resource_label(r),
+                "description": "S3 Public Access Block does not block public bucket policies.",
+                "remediation": "Update the `block_public_policy` setting to a secure value."
+            })
+    return findings
+
+# ──────────────────────────────────────────────────────────────────────────────
+# RULE AWS-044 — aws_s3_bucket_public_access_block: s3_restrict_public_buckets
+# Severity: HIGH
+# ──────────────────────────────────────────────────────────────────────────────
+def check_s3_restrict_public_buckets(resources: list[dict]) -> list[dict]:
+    findings = []
+    for r in resources:
+        if r["resource_type"] != "aws_s3_bucket_public_access_block": continue
+        val = r["config"].get("restrict_public_buckets", "False")
+        if isinstance(val, list): val = val[0]
+        if str(val).lower() == "false":
+            findings.append({
+                "rule_id": "AWS-044",
+                "severity": "HIGH",
+                "resource": _resource_label(r),
+                "description": "S3 Public Access Block does not restrict public buckets.",
+                "remediation": "Update the `restrict_public_buckets` setting to a secure value."
+            })
+    return findings
+
+# ──────────────────────────────────────────────────────────────────────────────
+# RULE AWS-045 — aws_dynamodb_table: dynamodb_pitr_disabled
+# Severity: MEDIUM
+# ──────────────────────────────────────────────────────────────────────────────
+def check_dynamodb_pitr_disabled(resources: list[dict]) -> list[dict]:
+    findings = []
+    for r in resources:
+        if r["resource_type"] != "aws_dynamodb_table": continue
+        val = r["config"].get("point_in_time_recovery", "False")
+        if isinstance(val, list): val = val[0]
+        if str(val).lower() == "false":
+            findings.append({
+                "rule_id": "AWS-045",
+                "severity": "MEDIUM",
+                "resource": _resource_label(r),
+                "description": "DynamoDB table does not have Point-in-Time Recovery enabled.",
+                "remediation": "Update the `point_in_time_recovery` setting to a secure value."
+            })
+    return findings
+
 ALL_RULES = [
     check_s3_public_acl,
     check_open_ssh,

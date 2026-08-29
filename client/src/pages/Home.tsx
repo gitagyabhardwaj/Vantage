@@ -240,36 +240,16 @@ function DashboardView({
 
   const startScan = async () => {
     if (scanState === "scanning") return;
+    if (!file) {
+      toast.error("No file selected", { description: "Please upload a Terraform file to scan." });
+      return;
+    }
     setScanState("scanning");
     toast("Scanner armed", { description: `Inspecting ${fileName} against 35 active rules.` });
 
-    let currentFile = file;
-    if (!currentFile) {
-      const demoContent = `
-resource "aws_s3_bucket" "main" {
-  bucket = "vantage-prod"
-  acl    = "public-read"
-}
-resource "aws_security_group" "web" {
-  ingress {
-    from_port   = 22
-    to_port     = 22
-    protocol    = "tcp"
-    cidr_blocks = ["0.0.0.0/0"]
-  }
-}
-resource "aws_iam_policy" "deploy" {
-  policy = jsonencode({
-    Statement = [{ Action = "*", Effect = "Allow", Resource = "*" }]
-  })
-}
-`;
-      currentFile = new File([demoContent], "vantage-prod.tf", { type: "text/plain" });
-    }
-
     try {
       const formData = new FormData();
-      formData.append("file", currentFile);
+      formData.append("file", file);
       const response = await fetch("/api/scan", {
         method: "POST",
         body: formData,
@@ -314,9 +294,9 @@ resource "aws_iam_policy" "deploy" {
       <section className="page-intro">
         <div>
           <div className="eyebrow"><span className="eyebrow-line" /> LIVE VERDICT / {fileName.toUpperCase()}</div>
-          <h1>{totalExposures} exposures<br /><span>need an owner.</span></h1>
+          <h1>{scanState === "idle" ? "Ready to scan" : `${totalExposures} exposures`} <br /><span>{scanState === "idle" ? "awaiting execution." : "need an owner."}</span></h1>
           <p className="intro-copy">
-            Vantage analyzed the plan and found {totalExposures} security paths that need a decision before apply.
+            {scanState === "idle" ? "Upload your Terraform plan to analyze security paths before apply." : `Vantage analyzed the plan and found ${totalExposures} security paths that need a decision before apply.`}
           </p>
         </div>
         <div className="intro-actions">
@@ -338,62 +318,61 @@ resource "aws_iam_policy" "deploy" {
         </div>
       </section>
 
-      <section className="telemetry-banner">
-        <div className="telemetry-overlay" />
-        <div className="telemetry-copy">
-          <span className="mono signal-code">PLAN / LOCAL</span>
-          <strong>Plan evidence is ready.</strong>
-          <span>Local run · Vantage analysis attached · 0 queue latency</span>
-        </div>
-        <div className="telemetry-readout">
-          <span>RULES EVALUATED</span>
-          <strong>{scan.summary.passed + scan.findings.length}<small> / 35</small></strong>
-        </div>
-        <div className="telemetry-readout">
-          <span>LAST SYNC</span>
-          <strong>00:04<small> ago</small></strong>
-        </div>
-        <div className="telemetry-wave">
-          <span /><span /><span /><span /><span /><span /><span /><span /><span />
-        </div>
-      </section>
+      {scanState !== "idle" && (
+        <section className="telemetry-banner">
+          <div className="telemetry-overlay" />
+          <div className="telemetry-copy">
+            <span className="mono signal-code">PLAN / LOCAL</span>
+            <strong>Plan evidence is ready.</strong>
+            <span>Local run · Vantage analysis attached · 0 queue latency</span>
+          </div>
+          <div className="telemetry-readout">
+            <span>RULES EVALUATED</span>
+            <strong>{scan.summary.passed + scan.findings.length}<small> / 35</small></strong>
+          </div>
+          <div className="telemetry-readout">
+            <span>LAST SYNC</span>
+            <strong>00:04<small> ago</small></strong>
+          </div>
+          <div className="telemetry-wave">
+            <span /><span /><span /><span /><span /><span /><span /><span /><span />
+          </div>
+        </section>
+      )}
 
       <section className="hero-grid">
-        <article className="panel score-panel">
-          <div className="panel-head">
-            <div>
-              <span className="panel-kicker"><Radar size={14} /> POSTURE INDEX</span>
-              <h2>Security posture</h2>
-            </div>
-            <button className="quiet-button" onClick={() => toast("Score methodology", { description: "Passes, weighted findings, asset criticality, and exposure context roll into this index." })}>
-              <MoreHorizontal size={17} />
-            </button>
-          </div>
-          <div className="score-layout">
-            <ScoreRing score={score} scanning={scanState === "scanning"} />
-            <div className="score-context">
-              <div className="context-status">
-                <StatusDot state={scanState === "complete" ? "live" : "warn"} />
-                <span>{scanState === "complete" ? "IMPROVING" : "EXPOSURE DETECTED"}</span>
+        {scanState !== "idle" && (
+          <article className="panel score-panel">
+            <div className="panel-head">
+              <div>
+                <span className="panel-kicker"><Radar size={14} /> POSTURE INDEX</span>
+                <h2>Security posture</h2>
               </div>
-              <p>
-                {scanState === "complete"
-                  ? "Critical exposure cleared. High-impact paths still need an owner."
-                  : "Public access and unrestricted ingress are the dominant risk paths in this workspace."}
-              </p>
-              <div className="metric-split">
-                <div><strong>{scan.summary.passed}</strong><span>checks passed</span></div>
-                <div><strong>{totalExposures}</strong><span>open findings</span></div>
+              <button className="quiet-button" onClick={() => toast("Score methodology", { description: "Passes, weighted findings, asset criticality, and exposure context roll into this index." })}>
+                <MoreHorizontal size={17} />
+              </button>
+            </div>
+            <div className="score-layout">
+              <ScoreRing score={score} scanning={scanState === "scanning"} />
+              <div className="score-context">
+                <div className="context-status">
+                  <StatusDot state={scanState === "complete" ? "live" : "warn"} />
+                  <span>{scanState === "complete" ? "IMPROVING" : "EXPOSURE DETECTED"}</span>
+                </div>
+                <p>{scanState === "complete" ? (scan.security_score?.verdict || "Analysis complete.") : "Public access and unrestricted ingress are the dominant risk paths in this workspace."}</p>
+                <div className="metric-split">
+                  <div><strong>{scan.summary.passed}</strong><span>checks passed</span></div>
+                  <div><strong>{totalExposures}</strong><span>open findings</span></div>
+                </div>
               </div>
             </div>
-          </div>
-          <div className="score-footer">
-            <span>SOURCE / LOCAL RUN</span>
-            <span><Zap size={12} /> REAL-TIME</span>
-          </div>
-        </article>
+            <div className="score-footer">
+              <span className="mono">SOURCE / LOCAL RUN</span>
+            </div>
+          </article>
+        )}
 
-        <article className="panel upload-panel">
+        <article className="panel upload-panel" style={scanState === "idle" ? { gridColumn: "1 / -1" } : {}}>
           <div className="upload-tint" />
           <div className="panel-head on-dark">
             <div>
@@ -426,13 +405,14 @@ resource "aws_iam_policy" "deploy" {
         </article>
       </section>
 
-      <section className="insight-grid">
-        <article className="panel findings-panel">
-          <div className="panel-head findings-head">
-            <div>
-              <span className="panel-kicker"><ShieldAlert size={14} /> FINDINGS / {String(filteredFindings.length).padStart(2, "0")}</span>
-              <h2>Action required</h2>
-            </div>
+      {scanState !== "idle" && (
+        <section className="insight-grid">
+          <article className="panel findings-panel">
+            <div className="panel-head findings-head">
+              <div>
+                <span className="panel-kicker"><ShieldAlert size={14} /> FINDINGS / {String(filteredFindings.length).padStart(2, "0")}</span>
+                <h2>Action required</h2>
+              </div>
             <div className="findings-tools">
               <div className="search-field">
                 <Search size={14} />
@@ -541,6 +521,7 @@ resource "aws_iam_policy" "deploy" {
           </button>
         </article>
       </section>
+      )}
 
       <section className="check-status-strip panel">
         <div className="check-status-intro">
@@ -1182,7 +1163,7 @@ export default function Home() {
   const [scanState, setScanState] = useState<"idle" | "scanning" | "complete">("idle");
   const [scan, setScan] = useState<ScanPayload>(initialScan);
   const [file, setFile] = useState<File | null>(null);
-  const [fileName, setFileName] = useState("vantage-prod.tf");
+  const [fileName, setFileName] = useState("No file selected");
 
   const view = routeToView[location] ?? "Overview";
   const navigate = (path: string) => {

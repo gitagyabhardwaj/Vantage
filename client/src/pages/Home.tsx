@@ -484,7 +484,7 @@ function DashboardView({
                               toast.error("Invalid resource format", { description: finding.resource });
                               return;
                             }
-                            toast.loading("Generating secure code...", { id: "ai-fix-" + finding.rule_id });
+                            toast.loading("Analyzing vulnerability...", { id: "ai-fix-" + finding.rule_id });
                             try {
                               const res = await fetch("/api/ai-fix", {
                                 method: "POST",
@@ -493,15 +493,14 @@ function DashboardView({
                               });
                               if (!res.ok) {
                                 const err = await res.json().catch(() => ({}));
-                                throw new Error(err.detail || "AI Fix failed");
+                                throw new Error(err.detail || "AI Analysis failed");
                               }
                               const data = await res.json();
-                              await navigator.clipboard.writeText(data.fixed_code);
-                              toast.success("Secure code copied to clipboard", { id: "ai-fix-" + finding.rule_id });
+                              toast.success("AI Analysis Complete", { id: "ai-fix-" + finding.rule_id, description: data.suggestion, duration: 15000 });
                             } catch (e) {
                               toast.error(String(e), { id: "ai-fix-" + finding.rule_id });
                             }
-                          }}>AUTO-FIX (AI) <Sparkles size={14} /></button>
+                          }}>ASK AI (EXPLAIN) <Sparkles size={14} /></button>
                         </div>
                       </div>
                     )}

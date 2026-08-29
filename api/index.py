@@ -96,18 +96,11 @@ I have a Terraform resource of type '{request.resource_type}' named '{request.re
 It was flagged with the following security vulnerability:
 "{request.vulnerability_description}"
 
-Write the completely secure, fixed Terraform (HCL) block for this resource.
-Return ONLY the raw HCL code. Do not include markdown formatting like ```hcl or any explanations."""
+Please provide a concise explanation of WHY this is a security risk, and a clear, step-by-step suggestion on how to remediate it in Terraform. Keep it strictly to 2-3 short paragraphs max."""
 
     try:
         response = model.generate_content(prompt)
-        clean_code = response.text.strip()
-        # Strip accidental markdown fences
-        if clean_code.startswith("```"):
-            clean_code = clean_code.split("\n", 1)[-1]
-        if clean_code.endswith("```"):
-            clean_code = clean_code.rsplit("```", 1)[0]
-        return {"fixed_code": clean_code.strip()}
+        return {"suggestion": response.text.strip()}
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"AI Error: {str(e)}")
 

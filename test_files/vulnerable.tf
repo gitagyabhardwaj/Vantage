@@ -88,3 +88,39 @@ resource "aws_sqs_queue" "message_queue" {
   name = "my-message-queue"
   sqs_managed_sse_enabled = false
 }
+
+# RULE AWS-011: RDS Publicly Accessible — CRITICAL
+resource "aws_db_instance" "analytics_db" {
+  identifier          = "analytics-db"
+  engine              = "postgres"
+  instance_class      = "db.t3.medium"
+  publicly_accessible = true
+}
+
+# RULE AWS-012: CloudTrail Multi-Region Disabled — MEDIUM
+resource "aws_cloudtrail" "main_audit" {
+  name                  = "main-audit-trail"
+  s3_bucket_name        = aws_s3_bucket.data_lake.id
+  is_multi_region_trail = false
+}
+
+# RULE AWS-013: KMS Key Rotation Disabled — MEDIUM
+resource "aws_kms_key" "app_key" {
+  description         = "KMS key for application data"
+  enable_key_rotation = false
+}
+
+# RULE AWS-014: ALB Not Dropping Headers — HIGH
+resource "aws_lb" "frontend_alb" {
+  name                       = "frontend-alb"
+  load_balancer_type         = "application"
+  drop_invalid_header_fields = false
+}
+
+# RULE AWS-015: API GW Tracing Disabled — LOW
+resource "aws_api_gateway_stage" "prod_stage" {
+  stage_name           = "prod"
+  rest_api_id          = "api-12345"
+  deployment_id        = "deploy-123"
+  xray_tracing_enabled = false
+}

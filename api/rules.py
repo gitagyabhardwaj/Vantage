@@ -306,6 +306,11 @@ def check_s3_versioning_disabled(resources: list[dict]) -> list[dict]:
 # Master runner — called by the engine
 # ──────────────────────────────────────────────────────────────────────────────
 ALL_RULES = [
+    check_rds_public,
+    check_cloudtrail_multi_region,
+    check_kms_rotation,
+    check_alb_headers,
+    check_apigw_tracing,
     check_ec2_public_ip,
     check_open_rdp,
     check_ebs_unencrypted,
@@ -458,5 +463,95 @@ def check_sqs_unencrypted(resources: list[dict]) -> list[dict]:
                 "resource": _resource_label(r),
                 "description": "SQS Queue messages are stored in plaintext. Sensitive data in transit is exposed.",
                 "remediation": "Set `sqs_managed_sse_enabled = true` or provide a `kms_master_key_id`."
+            })
+    return findings
+
+# ──────────────────────────────────────────────────────────────────────────────
+# RULE AWS-011 — RDS: Publicly Accessible
+# Severity: CRITICAL
+# ──────────────────────────────────────────────────────────────────────────────
+def check_rds_public(resources: list[dict]) -> list[dict]:
+    findings = []
+    for r in resources:
+        if r["resource_type"] != "aws_db_instance": continue
+        pub = r["config"].get("publicly_accessible", False)
+        if isinstance(pub, list): pub = pub[0]
+        if str(pub).lower() in ("true", "1", "yes"):
+            findings.append({
+                "rule_id": "AWS-011", "severity": "CRITICAL", "resource": _resource_label(r),
+                "description": "RDS database is publicly accessible to the internet.",
+                "remediation": "Set `publicly_accessible = false`."
+            })
+    return findings
+
+# ──────────────────────────────────────────────────────────────────────────────
+# RULE AWS-012 — CloudTrail: Multi-Region Disabled
+# Severity: MEDIUM
+# ──────────────────────────────────────────────────────────────────────────────
+def check_cloudtrail_multi_region(resources: list[dict]) -> list[dict]:
+    findings = []
+    for r in resources:
+        if r["resource_type"] != "aws_cloudtrail": continue
+        multi = r["config"].get("is_multi_region_trail", False)
+        if isinstance(multi, list): multi = multi[0]
+        if str(multi).lower() not in ("true", "1", "yes"):
+            findings.append({
+                "rule_id": "AWS-012", "severity": "MEDIUM", "resource": _resource_label(r),
+                "description": "CloudTrail does not log events across all regions, creating auditing blind spots.",
+                "remediation": "Set `is_multi_region_trail = true`."
+            })
+    return findings
+
+# ──────────────────────────────────────────────────────────────────────────────
+# RULE AWS-013 — KMS: Key Rotation Disabled
+# Severity: MEDIUM
+# ──────────────────────────────────────────────────────────────────────────────
+def check_kms_rotation(resources: list[dict]) -> list[dict]:
+    findings = []
+    for r in resources:
+        if r["resource_type"] != "aws_kms_key": continue
+        rot = r["config"].get("enable_key_rotation", False)
+        if isinstance(rot, list): rot = rot[0]
+        if str(rot).lower() not in ("true", "1", "yes"):
+            findings.append({
+                "rule_id": "AWS-013", "severity": "MEDIUM", "resource": _resource_label(r),
+                "description": "KMS Key rotation is disabled, increasing the impact of a compromised key over time.",
+                "remediation": "Set `enable_key_rotation = true`."
+            })
+    return findings
+
+# ──────────────────────────────────────────────────────────────────────────────
+# RULE AWS-014 — ALB: Dropping Invalid Headers Disabled
+# Severity: HIGH
+# ──────────────────────────────────────────────────────────────────────────────
+def check_alb_headers(resources: list[dict]) -> list[dict]:
+    findings = []
+    for r in resources:
+        if r["resource_type"] != "aws_lb": continue
+        drop = r["config"].get("drop_invalid_header_fields", False)
+        if isinstance(drop, list): drop = drop[0]
+        if str(drop).lower() not in ("true", "1", "yes"):
+            findings.append({
+                "rule_id": "AWS-014", "severity": "HIGH", "resource": _resource_label(r),
+                "description": "Load Balancer does not drop invalid HTTP headers, vulnerable to HTTP desync attacks.",
+                "remediation": "Set `drop_invalid_header_fields = true`."
+            })
+    return findings
+
+# ──────────────────────────────────────────────────────────────────────────────
+# RULE AWS-015 — API Gateway: X-Ray Tracing Disabled
+# Severity: LOW
+# ──────────────────────────────────────────────────────────────────────────────
+def check_apigw_tracing(resources: list[dict]) -> list[dict]:
+    findings = []
+    for r in resources:
+        if r["resource_type"] != "aws_api_gateway_stage": continue
+        trace = r["config"].get("xray_tracing_enabled", False)
+        if isinstance(trace, list): trace = trace[0]
+        if str(trace).lower() not in ("true", "1", "yes"):
+            findings.append({
+                "rule_id": "AWS-015", "severity": "LOW", "resource": _resource_label(r),
+                "description": "API Gateway does not have AWS X-Ray tracing enabled, reducing security observability.",
+                "remediation": "Set `xray_tracing_enabled = true`."
             })
     return findings

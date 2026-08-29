@@ -166,7 +166,13 @@ resource "aws_iam_policy" "deploy" {
     }
   };
 
-  const handleFile = (f?: File) => { if (!f) return; setFile(f); setFileName(f.name); setScanState("idle"); setScan(initialScan); setExpandedFinding("AWS-001"); toast("Configuration loaded", { description: `${f.name} is ready for a local posture pass.` }); };
+  const emptyScan: ScanPayload = {
+    summary: { critical: 0, high: 0, medium: 0, passed: 0 },
+    findings: [],
+    security_score: { score: 100, grade: "A+", verdict: "Ready to scan" }
+  };
+
+  const handleFile = (f?: File) => { if (!f) return; setFile(f); setFileName(f.name); setScanState("idle"); setScan(emptyScan); setExpandedFinding(null); toast("Configuration loaded", { description: `${f.name} is ready for a local posture pass.` }); };
 
   return <>
     <section className="page-intro"><div><div className="eyebrow"><span className="eyebrow-line" /> LIVE VERDICT / {fileName.toUpperCase()}</div><h1>{scan.summary.critical + scan.summary.high + scan.summary.medium} exposures<br /><span>need an owner.</span></h1><p className="intro-copy">Vantage analyzed the plan. Vantage found {scan.summary.critical + scan.summary.high + scan.summary.medium} security paths that need a decision before apply.</p></div><div className="intro-actions"><button className={`primary-cta ${scanState === "scanning" ? "scanning" : ""}`} onClick={startScan} disabled={scanState === "scanning"}>{scanState === "scanning" ? <><RefreshCw size={17} className="spin" /> SCANNING FILE</> : scanState === "complete" ? <><Check size={17} /> RE-RUN SCAN</> : <><Play size={17} fill="currentColor" /> RUN LOCAL SCAN</>}<span className="cta-shortcut">⌘ ↵</span></button><span className="last-scan"><span className="mini-pulse" /> LAST SCAN <strong>4 MIN AGO</strong></span></div></section>

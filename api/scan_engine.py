@@ -40,12 +40,58 @@ def run_scan(file_content: str, filename: str = "upload.tf") -> dict:
 
     score_data = calculate_score(all_findings, len(resources))
 
+    # Build dynamic assets map from actual parsed resources
+    def get_service_group(res_type: str) -> str:
+        if "s3" in res_type or "efs" in res_type:
+            return "Storage"
+        if "security_group" in res_type or "vpc" in res_type or "route" in res_type:
+            return "Network"
+        if "iam" in res_type:
+            return "Identity"
+        if "db" in res_type or "rds" in res_type or "dynamodb" in res_type or "kms" in res_type:
+            return "Data"
+        if "eks" in res_type or "ecs" in res_type or "instance" in res_type:
+            return "Compute"
+        return "Infrastructure"
+
+    assets = []
+    for r in resources:
+        res_full_name = f"{r['resource_type']}.{r['resource_name']}"
+        res_findings = [f for f in all_findings if f.get("resource") == res_full_name or r['resource_name'] in f.get("resource", "")]
+        
+        if res_findings:
+            top_severity = res_findings[0]["severity"]
+            state = "EXPOSED"
+            risk = top_severity
+            detail = res_findings[0].get("description", "Security vulnerability detected.")
+        else:
+            state = "PROTECTED"
+            risk = "PASSED"
+            detail = "Passed all evaluated security checks."
+
+        # Format a clean HCL representation snippet
+        cfg = r.get("config", {})
+        props_str = "\n".join([f"  {k} = {repr(v)}" for k, v in list(cfg.items())[:4]]) if isinstance(cfg, dict) else ""
+        evidence_snippet = f'resource "{r["resource_type"]}" "{r["resource_name"]}" {{\n{props_str}\n}}'
+
+        assets.append({
+            "name": res_full_name,
+            "type": r["resource_type"],
+            "group": get_service_group(r["resource_type"]),
+            "owner": "workspace-owner",
+            "state": state,
+            "risk": risk,
+            "detail": detail,
+            "evidence": evidence_snippet,
+        })
+
     return {
         "filename": filename,
         "resources_scanned": len(resources),
         "security_score": score_data,
         "summary": summary,
         "findings": all_findings,
+        "assets": assets,
     }
 
 

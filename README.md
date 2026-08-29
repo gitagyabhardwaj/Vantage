@@ -69,3 +69,5 @@ For a 10-hour hackathon, we are prioritizing speed, visual impact, and simplicit
   ]
 }
 ```
+
+.

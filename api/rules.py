@@ -306,9 +306,157 @@ def check_s3_versioning_disabled(resources: list[dict]) -> list[dict]:
 # Master runner — called by the engine
 # ──────────────────────────────────────────────────────────────────────────────
 ALL_RULES = [
+    check_ec2_public_ip,
+    check_open_rdp,
+    check_ebs_unencrypted,
+    check_ecr_scanning_disabled,
+    check_sqs_unencrypted,
     check_s3_public_acl,
     check_open_ssh,
     check_iam_wildcard,
     check_rds_unencrypted,
     check_s3_versioning_disabled,
 ]
+
+# ──────────────────────────────────────────────────────────────────────────────
+# RULE AWS-006 — EC2 Instance: Public IP Assigned
+# Severity: HIGH
+# ──────────────────────────────────────────────────────────────────────────────
+def check_ec2_public_ip(resources: list[dict]) -> list[dict]:
+    findings = []
+    for r in resources:
+        if r["resource_type"] != "aws_instance":
+            continue
+        
+        public_ip = r["config"].get("associate_public_ip_address", False)
+        if isinstance(public_ip, list): public_ip = public_ip[0]
+        
+        if str(public_ip).lower() in ("true", "1", "yes"):
+            findings.append({
+                "rule_id": "AWS-006",
+                "severity": "HIGH",
+                "resource": _resource_label(r),
+                "description": "EC2 instance is assigned a public IP address. This directly exposes the server to the internet.",
+                "remediation": "Set `associate_public_ip_address = false`. Use a load balancer or bastion host for access."
+            })
+    return findings
+
+# ──────────────────────────────────────────────────────────────────────────────
+# RULE AWS-007 — Security Group: Open RDP (Port 3389)
+# Severity: CRITICAL
+# ──────────────────────────────────────────────────────────────────────────────
+def check_open_rdp(resources: list[dict]) -> list[dict]:
+    findings = []
+    OPEN_CIDRS = {"0.0.0.0/0", "::/0"}
+    for r in resources:
+        if r["resource_type"] not in ("aws_security_group", "aws_security_group_rule"):
+            continue
+
+        ingress_rules = r["config"].get("ingress", [])
+        if not isinstance(ingress_rules, list): ingress_rules = [ingress_rules]
+
+        for rule in ingress_rules:
+            if not isinstance(rule, dict): continue
+            from_port = rule.get("from_port", -1)
+            to_port = rule.get("to_port", -1)
+            if isinstance(from_port, list): from_port = from_port[0]
+            if isinstance(to_port, list):   to_port   = to_port[0]
+
+            cidr_blocks = rule.get("cidr_blocks", []) or []
+            if isinstance(cidr_blocks, list) is False: cidr_blocks = [cidr_blocks]
+
+            all_cidrs = set(cidr_blocks)
+            open_to_world = bool(all_cidrs & OPEN_CIDRS)
+
+            try:
+                port_exposed = int(from_port) <= 3389 <= int(to_port)
+            except (TypeError, ValueError):
+                port_exposed = False
+
+            if port_exposed and open_to_world:
+                findings.append({
+                    "rule_id": "AWS-007",
+                    "severity": "CRITICAL",
+                    "resource": _resource_label(r),
+                    "description": "Security group allows unrestricted RDP access (port 3389) from the entire internet.",
+                    "remediation": "Restrict RDP to your corporate VPN CIDR block."
+                })
+    return findings
+
+# ──────────────────────────────────────────────────────────────────────────────
+# RULE AWS-008 — EBS Volume: Unencrypted
+# Severity: HIGH
+# ──────────────────────────────────────────────────────────────────────────────
+def check_ebs_unencrypted(resources: list[dict]) -> list[dict]:
+    findings = []
+    for r in resources:
+        if r["resource_type"] != "aws_ebs_volume":
+            continue
+        
+        encrypted = r["config"].get("encrypted", False)
+        if isinstance(encrypted, list): encrypted = encrypted[0]
+        
+        if str(encrypted).lower() in ("false", "0", "no", ""):
+            findings.append({
+                "rule_id": "AWS-008",
+                "severity": "HIGH",
+                "resource": _resource_label(r),
+                "description": "EBS volume is not encrypted. Data stored on this disk is exposed if physical access is compromised.",
+                "remediation": "Set `encrypted = true`."
+            })
+    return findings
+
+# ──────────────────────────────────────────────────────────────────────────────
+# RULE AWS-009 — ECR Repository: Image Scanning Disabled
+# Severity: MEDIUM
+# ──────────────────────────────────────────────────────────────────────────────
+def check_ecr_scanning_disabled(resources: list[dict]) -> list[dict]:
+    findings = []
+    for r in resources:
+        if r["resource_type"] != "aws_ecr_repository":
+            continue
+        
+        scan_config = r["config"].get("image_scanning_configuration", {})
+        if isinstance(scan_config, list): scan_config = scan_config[0]
+        
+        scan_on_push = scan_config.get("scan_on_push", False) if isinstance(scan_config, dict) else False
+        if isinstance(scan_on_push, list): scan_on_push = scan_on_push[0]
+        
+        if str(scan_on_push).lower() not in ("true", "1", "yes"):
+            findings.append({
+                "rule_id": "AWS-009",
+                "severity": "MEDIUM",
+                "resource": _resource_label(r),
+                "description": "ECR container registry does not scan images on push. Vulnerable docker images could be deployed.",
+                "remediation": "Add an `image_scanning_configuration` block and set `scan_on_push = true`."
+            })
+    return findings
+
+# ──────────────────────────────────────────────────────────────────────────────
+# RULE AWS-010 — SQS Queue: Unencrypted
+# Severity: HIGH
+# ──────────────────────────────────────────────────────────────────────────────
+def check_sqs_unencrypted(resources: list[dict]) -> list[dict]:
+    findings = []
+    for r in resources:
+        if r["resource_type"] != "aws_sqs_queue":
+            continue
+        
+        sqs_managed = r["config"].get("sqs_managed_sse_enabled", False)
+        kms_key = r["config"].get("kms_master_key_id", "")
+        
+        if isinstance(sqs_managed, list): sqs_managed = sqs_managed[0]
+        if isinstance(kms_key, list): kms_key = kms_key[0]
+        
+        is_managed = str(sqs_managed).lower() in ("true", "1", "yes")
+        has_kms = bool(kms_key)
+        
+        if not is_managed and not has_kms:
+            findings.append({
+                "rule_id": "AWS-010",
+                "severity": "HIGH",
+                "resource": _resource_label(r),
+                "description": "SQS Queue messages are stored in plaintext. Sensitive data in transit is exposed.",
+                "remediation": "Set `sqs_managed_sse_enabled = true` or provide a `kms_master_key_id`."
+            })
+    return findings

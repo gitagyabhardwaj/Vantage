@@ -49,3 +49,42 @@ resource "aws_s3_bucket_versioning" "data_lake_versioning" {
     status = "Suspended"
   }
 }
+
+# RULE AWS-006: EC2 Public IP — HIGH
+resource "aws_instance" "web_server" {
+  ami                         = "ami-123456"
+  instance_type               = "t2.micro"
+  associate_public_ip_address = true
+}
+
+# RULE AWS-007: RDP Open to World — CRITICAL
+resource "aws_security_group" "windows_sg" {
+  name = "windows-sg"
+  ingress {
+    from_port   = 3389
+    to_port     = 3389
+    protocol    = "tcp"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+}
+
+# RULE AWS-008: EBS Unencrypted — HIGH
+resource "aws_ebs_volume" "data_drive" {
+  availability_zone = "us-west-2a"
+  size              = 40
+  encrypted         = false
+}
+
+# RULE AWS-009: ECR Image Scanning Disabled — MEDIUM
+resource "aws_ecr_repository" "app_repo" {
+  name = "my-app-repo"
+  image_scanning_configuration {
+    scan_on_push = false
+  }
+}
+
+# RULE AWS-010: SQS Unencrypted — HIGH
+resource "aws_sqs_queue" "message_queue" {
+  name = "my-message-queue"
+  sqs_managed_sse_enabled = false
+}

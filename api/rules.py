@@ -306,252 +306,49 @@ def check_s3_versioning_disabled(resources: list[dict]) -> list[dict]:
 # Master runner — called by the engine
 # ──────────────────────────────────────────────────────────────────────────────
 ALL_RULES = [
-    check_rds_public,
-    check_cloudtrail_multi_region,
-    check_kms_rotation,
-    check_alb_headers,
-    check_apigw_tracing,
-    check_ec2_public_ip,
-    check_open_rdp,
-    check_ebs_unencrypted,
-    check_ecr_scanning_disabled,
-    check_sqs_unencrypted,
     check_s3_public_acl,
     check_open_ssh,
     check_iam_wildcard,
     check_rds_unencrypted,
     check_s3_versioning_disabled,
+    check_ec2_public_ip,
+    check_open_rdp,
+    check_ebs_unencrypted,
+    check_ecr_scanning_disabled,
+    check_sqs_unencrypted,
+    check_rds_public,
+    check_cloudtrail_multi_region,
+    check_kms_rotation,
+    check_alb_headers,
+    check_apigw_tracing,
+    check_efs_unencrypted,
+    check_elasticache_transit,
+    check_elasticache_at_rest,
+    check_cloudfront_allow_http,
+    check_sagemaker_root_access,
+    check_docdb_unencrypted,
+    check_dax_unencrypted,
+    check_kinesis_unencrypted,
+    check_redshift_public,
+    check_redshift_unencrypted,
+    check_eks_public_endpoint,
+    check_emr_unencrypted,
+    check_mq_public,
+    check_neptune_unencrypted,
+    check_workspace_unencrypted,
+    check_athena_unencrypted,
+    check_sns_unencrypted,
+    check_ecs_no_transit_encryption,
+    check_codebuild_unencrypted,
+    check_appsync_waf_disabled,
+    check_apigateway_waf_disabled,
+    check_lambda_tracing_disabled,
+    check_vpc_flow_logs_disabled,
+    check_iam_password_reuse,
+    check_iam_password_length,
+    check_s3_block_public_acls,
+    check_s3_ignore_public_acls,
+    check_s3_block_public_policy,
+    check_s3_restrict_public_buckets,
+    check_dynamodb_pitr_disabled,
 ]
-
-# ──────────────────────────────────────────────────────────────────────────────
-# RULE AWS-006 — EC2 Instance: Public IP Assigned
-# Severity: HIGH
-# ──────────────────────────────────────────────────────────────────────────────
-def check_ec2_public_ip(resources: list[dict]) -> list[dict]:
-    findings = []
-    for r in resources:
-        if r["resource_type"] != "aws_instance":
-            continue
-        
-        public_ip = r["config"].get("associate_public_ip_address", False)
-        if isinstance(public_ip, list): public_ip = public_ip[0]
-        
-        if str(public_ip).lower() in ("true", "1", "yes"):
-            findings.append({
-                "rule_id": "AWS-006",
-                "severity": "HIGH",
-                "resource": _resource_label(r),
-                "description": "EC2 instance is assigned a public IP address. This directly exposes the server to the internet.",
-                "remediation": "Set `associate_public_ip_address = false`. Use a load balancer or bastion host for access."
-            })
-    return findings
-
-# ──────────────────────────────────────────────────────────────────────────────
-# RULE AWS-007 — Security Group: Open RDP (Port 3389)
-# Severity: CRITICAL
-# ──────────────────────────────────────────────────────────────────────────────
-def check_open_rdp(resources: list[dict]) -> list[dict]:
-    findings = []
-    OPEN_CIDRS = {"0.0.0.0/0", "::/0"}
-    for r in resources:
-        if r["resource_type"] not in ("aws_security_group", "aws_security_group_rule"):
-            continue
-
-        ingress_rules = r["config"].get("ingress", [])
-        if not isinstance(ingress_rules, list): ingress_rules = [ingress_rules]
-
-        for rule in ingress_rules:
-            if not isinstance(rule, dict): continue
-            from_port = rule.get("from_port", -1)
-            to_port = rule.get("to_port", -1)
-            if isinstance(from_port, list): from_port = from_port[0]
-            if isinstance(to_port, list):   to_port   = to_port[0]
-
-            cidr_blocks = rule.get("cidr_blocks", []) or []
-            if isinstance(cidr_blocks, list) is False: cidr_blocks = [cidr_blocks]
-
-            all_cidrs = set(cidr_blocks)
-            open_to_world = bool(all_cidrs & OPEN_CIDRS)
-
-            try:
-                port_exposed = int(from_port) <= 3389 <= int(to_port)
-            except (TypeError, ValueError):
-                port_exposed = False
-
-            if port_exposed and open_to_world:
-                findings.append({
-                    "rule_id": "AWS-007",
-                    "severity": "CRITICAL",
-                    "resource": _resource_label(r),
-                    "description": "Security group allows unrestricted RDP access (port 3389) from the entire internet.",
-                    "remediation": "Restrict RDP to your corporate VPN CIDR block."
-                })
-    return findings
-
-# ──────────────────────────────────────────────────────────────────────────────
-# RULE AWS-008 — EBS Volume: Unencrypted
-# Severity: HIGH
-# ──────────────────────────────────────────────────────────────────────────────
-def check_ebs_unencrypted(resources: list[dict]) -> list[dict]:
-    findings = []
-    for r in resources:
-        if r["resource_type"] != "aws_ebs_volume":
-            continue
-        
-        encrypted = r["config"].get("encrypted", False)
-        if isinstance(encrypted, list): encrypted = encrypted[0]
-        
-        if str(encrypted).lower() in ("false", "0", "no", ""):
-            findings.append({
-                "rule_id": "AWS-008",
-                "severity": "HIGH",
-                "resource": _resource_label(r),
-                "description": "EBS volume is not encrypted. Data stored on this disk is exposed if physical access is compromised.",
-                "remediation": "Set `encrypted = true`."
-            })
-    return findings
-
-# ──────────────────────────────────────────────────────────────────────────────
-# RULE AWS-009 — ECR Repository: Image Scanning Disabled
-# Severity: MEDIUM
-# ──────────────────────────────────────────────────────────────────────────────
-def check_ecr_scanning_disabled(resources: list[dict]) -> list[dict]:
-    findings = []
-    for r in resources:
-        if r["resource_type"] != "aws_ecr_repository":
-            continue
-        
-        scan_config = r["config"].get("image_scanning_configuration", {})
-        if isinstance(scan_config, list): scan_config = scan_config[0]
-        
-        scan_on_push = scan_config.get("scan_on_push", False) if isinstance(scan_config, dict) else False
-        if isinstance(scan_on_push, list): scan_on_push = scan_on_push[0]
-        
-        if str(scan_on_push).lower() not in ("true", "1", "yes"):
-            findings.append({
-                "rule_id": "AWS-009",
-                "severity": "MEDIUM",
-                "resource": _resource_label(r),
-                "description": "ECR container registry does not scan images on push. Vulnerable docker images could be deployed.",
-                "remediation": "Add an `image_scanning_configuration` block and set `scan_on_push = true`."
-            })
-    return findings
-
-# ──────────────────────────────────────────────────────────────────────────────
-# RULE AWS-010 — SQS Queue: Unencrypted
-# Severity: HIGH
-# ──────────────────────────────────────────────────────────────────────────────
-def check_sqs_unencrypted(resources: list[dict]) -> list[dict]:
-    findings = []
-    for r in resources:
-        if r["resource_type"] != "aws_sqs_queue":
-            continue
-        
-        sqs_managed = r["config"].get("sqs_managed_sse_enabled", False)
-        kms_key = r["config"].get("kms_master_key_id", "")
-        
-        if isinstance(sqs_managed, list): sqs_managed = sqs_managed[0]
-        if isinstance(kms_key, list): kms_key = kms_key[0]
-        
-        is_managed = str(sqs_managed).lower() in ("true", "1", "yes")
-        has_kms = bool(kms_key)
-        
-        if not is_managed and not has_kms:
-            findings.append({
-                "rule_id": "AWS-010",
-                "severity": "HIGH",
-                "resource": _resource_label(r),
-                "description": "SQS Queue messages are stored in plaintext. Sensitive data in transit is exposed.",
-                "remediation": "Set `sqs_managed_sse_enabled = true` or provide a `kms_master_key_id`."
-            })
-    return findings
-
-# ──────────────────────────────────────────────────────────────────────────────
-# RULE AWS-011 — RDS: Publicly Accessible
-# Severity: CRITICAL
-# ──────────────────────────────────────────────────────────────────────────────
-def check_rds_public(resources: list[dict]) -> list[dict]:
-    findings = []
-    for r in resources:
-        if r["resource_type"] != "aws_db_instance": continue
-        pub = r["config"].get("publicly_accessible", False)
-        if isinstance(pub, list): pub = pub[0]
-        if str(pub).lower() in ("true", "1", "yes"):
-            findings.append({
-                "rule_id": "AWS-011", "severity": "CRITICAL", "resource": _resource_label(r),
-                "description": "RDS database is publicly accessible to the internet.",
-                "remediation": "Set `publicly_accessible = false`."
-            })
-    return findings
-
-# ──────────────────────────────────────────────────────────────────────────────
-# RULE AWS-012 — CloudTrail: Multi-Region Disabled
-# Severity: MEDIUM
-# ──────────────────────────────────────────────────────────────────────────────
-def check_cloudtrail_multi_region(resources: list[dict]) -> list[dict]:
-    findings = []
-    for r in resources:
-        if r["resource_type"] != "aws_cloudtrail": continue
-        multi = r["config"].get("is_multi_region_trail", False)
-        if isinstance(multi, list): multi = multi[0]
-        if str(multi).lower() not in ("true", "1", "yes"):
-            findings.append({
-                "rule_id": "AWS-012", "severity": "MEDIUM", "resource": _resource_label(r),
-                "description": "CloudTrail does not log events across all regions, creating auditing blind spots.",
-                "remediation": "Set `is_multi_region_trail = true`."
-            })
-    return findings
-
-# ──────────────────────────────────────────────────────────────────────────────
-# RULE AWS-013 — KMS: Key Rotation Disabled
-# Severity: MEDIUM
-# ──────────────────────────────────────────────────────────────────────────────
-def check_kms_rotation(resources: list[dict]) -> list[dict]:
-    findings = []
-    for r in resources:
-        if r["resource_type"] != "aws_kms_key": continue
-        rot = r["config"].get("enable_key_rotation", False)
-        if isinstance(rot, list): rot = rot[0]
-        if str(rot).lower() not in ("true", "1", "yes"):
-            findings.append({
-                "rule_id": "AWS-013", "severity": "MEDIUM", "resource": _resource_label(r),
-                "description": "KMS Key rotation is disabled, increasing the impact of a compromised key over time.",
-                "remediation": "Set `enable_key_rotation = true`."
-            })
-    return findings
-
-# ──────────────────────────────────────────────────────────────────────────────
-# RULE AWS-014 — ALB: Dropping Invalid Headers Disabled
-# Severity: HIGH
-# ──────────────────────────────────────────────────────────────────────────────
-def check_alb_headers(resources: list[dict]) -> list[dict]:
-    findings = []
-    for r in resources:
-        if r["resource_type"] != "aws_lb": continue
-        drop = r["config"].get("drop_invalid_header_fields", False)
-        if isinstance(drop, list): drop = drop[0]
-        if str(drop).lower() not in ("true", "1", "yes"):
-            findings.append({
-                "rule_id": "AWS-014", "severity": "HIGH", "resource": _resource_label(r),
-                "description": "Load Balancer does not drop invalid HTTP headers, vulnerable to HTTP desync attacks.",
-                "remediation": "Set `drop_invalid_header_fields = true`."
-            })
-    return findings
-
-# ──────────────────────────────────────────────────────────────────────────────
-# RULE AWS-015 — API Gateway: X-Ray Tracing Disabled
-# Severity: LOW
-# ──────────────────────────────────────────────────────────────────────────────
-def check_apigw_tracing(resources: list[dict]) -> list[dict]:
-    findings = []
-    for r in resources:
-        if r["resource_type"] != "aws_api_gateway_stage": continue
-        trace = r["config"].get("xray_tracing_enabled", False)
-        if isinstance(trace, list): trace = trace[0]
-        if str(trace).lower() not in ("true", "1", "yes"):
-            findings.append({
-                "rule_id": "AWS-015", "severity": "LOW", "resource": _resource_label(r),
-                "description": "API Gateway does not have AWS X-Ray tracing enabled, reducing security observability.",
-                "remediation": "Set `xray_tracing_enabled = true`."
-            })
-    return findings

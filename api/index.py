@@ -89,7 +89,7 @@ async def generate_ai_fix(request: AiFixRequest):
 
     import google.generativeai as genai
     genai.configure(api_key=api_key)
-    model = genai.GenerativeModel("gemini-1.5-flash")
+    model = genai.GenerativeModel("gemini-2.5-flash")
 
     prompt = f"""You are an expert cloud security engineer.
 I have a Terraform resource of type '{request.resource_type}' named '{request.resource_name}'.
@@ -136,7 +136,7 @@ async def chat_with_infra(request: ChatRequest):
 
     import google.generativeai as genai
     genai.configure(api_key=api_key)
-    model = genai.GenerativeModel("gemini-1.5-flash")
+    model = genai.GenerativeModel("gemini-2.5-flash")
 
     # Build a concise context from the scan report
     context = json.dumps({
